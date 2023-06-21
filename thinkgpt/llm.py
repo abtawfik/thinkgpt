@@ -5,7 +5,6 @@ from langchain.llms import OpenAI
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import LLMResult, BaseOutputParser, Generation
 from langchain.embeddings import OpenAIEmbeddings
-from docarray import DocumentArray, Document
 from pydantic.config import Extra
 from thinkgpt.helper import PythonREPL
 

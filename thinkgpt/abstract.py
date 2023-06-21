@@ -9,7 +9,6 @@ from langchain.llms import BaseLLM, OpenAI
 from langchain.chat_models import ChatOpenAI
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.prompts.few_shot import FewShotPromptTemplate
-from docarray import Document, DocumentArray
 
 from thinkgpt.helper import LineSeparatorOutputParser
 
