@@ -1,6 +1,7 @@
 # ThinkGPT 🧠🤖
-<a href="https://discord.jina.ai"><img src="https://img.shields.io/discord/1106542220112302130?logo=discord&logoColor=white&style=flat-square"></a>
+#### !!!Forked from https://github.com/jina-ai/thinkgpt!!!
 
+<a href="https://discord.jina.ai"><img src="https://img.shields.io/discord/1106542220112302130?logo=discord&logoColor=white&style=flat-square"></a>
 
 ThinkGPT is a Python library aimed at implementing Chain of Thoughts for Large Language Models (LLMs), prompting the model to think, reason, and to create generative agents. 
 The library aims to help with the following:
@@ -23,7 +24,7 @@ The library aims to help with the following:
 You can install ThinkGPT using pip:
 
 ```shell
-pip install git+https://github.com/alaeddine-13/thinkgpt.git
+pip install git+https://github.com/abtawfik/thinkgpt.git
 ```
 
 ## API Documentation 📚
