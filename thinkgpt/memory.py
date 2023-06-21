@@ -3,6 +3,7 @@ from typing import Dict, List, Union, Optional
 
 import numpy as np
 import langchain
+from langchain.docstore.document import Document
 from langchain import PromptTemplate, LLMChain
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.llms import OpenAI, BaseLLM
