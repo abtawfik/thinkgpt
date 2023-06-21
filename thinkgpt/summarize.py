@@ -26,9 +26,8 @@ class SummarizeChain(LLMChain, extra=Extra.allow):
         self.summarizer_chunk_size = summarizer_chunk_size
 
     def predict(self, content, **kwargs: Any) -> str:
-        return super().predict(
-            content=content,
-            **kwargs)
+        return super().predict(content=content,
+                               **kwargs)
 
 
 class SummarizeMixin:
@@ -58,15 +57,3 @@ class SummarizeMixin:
             return content
         return result
 
-
-if __name__ == '__main__':
-    chain = SummarizeChain(llm=ChatOpenAI(model_name="gpt-3.5-turbo"))
-    print(chain.predict(
-        content="""Artificial intelligence (AI) is intelligence demonstrated by machines, 
-        unlike the natural intelligence displayed by humans and animals, which involves 
-        consciousness and emotionality. The distinction between the former and the latter 
-        categories is often revealed by the acronym chosen. 'Strong' AI is usually labelled 
-        as AGI (Artificial General Intelligence) while attempts to emulate 'natural' 
-        intelligence have been called ABI (Artificial Biological Intelligence).""",
-        instruction_hint="Keep the summary concise and within 50 words.",
-        max_tokens=50))

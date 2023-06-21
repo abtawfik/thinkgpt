@@ -2,10 +2,10 @@ import re
 from typing import Dict, List, Union, Optional
 
 import numpy as np
+import langchain
 from langchain import PromptTemplate, LLMChain
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.llms import OpenAI, BaseLLM
-from docarray import Document, DocumentArray
 
 from thinkgpt.helper import get_n_tokens, fit_context
 
@@ -24,43 +24,50 @@ class ExecuteWithContextChain(LLMChain):
 
 
 class MemoryMixin:
-    memory: DocumentArray
+    memory: langchain.vectorstores
     mem_cnt: int
     embeddings_model: OpenAIEmbeddings
 
-    def memorize(self, concept: Union[str, Document, DocumentArray, List]):
+    def memorize(self,
+                 concept: Union[str, Document, List[Document]]):
+        ''' Memorize some data by saving it to a vectorestore like Chroma
+        '''
         self.mem_cnt += 1
+        #---------------------------------------
+        # Create the documents to store
+        #---------------------------------------
         if isinstance(concept, str):
-            doc = Document(text=concept, embedding=np.asarray(self.embeddings_model.embed_query(concept)), tags={'mem_cnt': self.mem_cnt})
-            self.memory.append(doc)
+            docs = [Document(page_content=concept)]
         elif isinstance(concept, Document):
-            assert concept.embedding is not None
-            concept.tags['mem_cnt'] = self.mem_cnt
-            self.memory.append(concept)
-        elif isinstance(concept, (DocumentArray, list)):
-            for doc in concept:
-                self.memorize(doc)
+            docs = [concept]
+        elif isinstance(concept, list):
+            docs = concept[:]
+            if any([not isinstance(con, Document) for con in concept]):
+                raise ValueError('wrong type for List[Document]')
         else:
-            raise ValueError('wrong type, must be either str, Document, DocumentArray, List')
+            raise ValueError('wrong type, must be either str, Document, List[Document]')
 
-    def remember(self, concept: Union[str, Document] = None, limit: int = 5, sort_by_order: bool = False, max_tokens: Optional[int] = None) -> List[str]:
+        #---------------------------------------
+        # Save memory into the database
+        #---------------------------------------
+        self.memory.add_documents(docs)
+        return None
+
+    def remember(self,
+                 concept: str,
+                 limit: int = 5,
+                 max_tokens: Optional[int] = None) -> List[str]:
+        #------------------------------------------------------
+        # Cannot remember if there is no stored memories
+        #------------------------------------------------------
         if len(self.memory) == 0:
             return []
-        if concept is None:
-            return [doc.text for doc in self.memory[-limit:]]
-        elif isinstance(concept, str):
-            query_input = Document(embedding=np.asarray(self.embeddings_model.embed_query(concept)))
-        elif isinstance(concept, Document):
-            assert concept.embedding is not None
-            query_input = concept
-        else:
-            raise ValueError('wrong type, must be either str or Document')
-
-        docs = self.memory.find(query_input, limit=limit)[0]
+        #------------------------------------------------------
+        # Grab the most relevant memories
         # memory needs to be sorted in chronological order
-        if sort_by_order:
-            docs = sorted(docs, key=lambda doc: doc.tags['mem_cnt'])
-        text_results = [doc.text for doc in docs]
+        #------------------------------------------------------
+        docs = self.memory.similarity_search(concept, k=limit)
+        text_results = [doc.page_content for doc in docs]
         if max_tokens:
             text_results = fit_context(text_results, max_tokens)
         return text_results

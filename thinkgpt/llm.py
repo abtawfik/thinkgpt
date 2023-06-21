@@ -20,7 +20,15 @@ from thinkgpt.summarize import SummarizeMixin, SummarizeChain
 
 
 
-class ThinkGPT(ChatOpenAI, MemoryMixin, AbstractMixin, RefineMixin, ConditionMixin, SelectMixin, InferMixin, SummarizeMixin, extra=Extra.allow):
+class ThinkGPT(ChatOpenAI,
+               MemoryMixin,
+               AbstractMixin,
+               RefineMixin,
+               ConditionMixin,
+               SelectMixin,
+               InferMixin,
+               SummarizeMixin,
+               extra=Extra.allow):
     """Wrapper around OpenAI large language models to augment it with memory
 
     To use, you should have the ``openai`` python package installed, and the
@@ -28,57 +36,54 @@ class ThinkGPT(ChatOpenAI, MemoryMixin, AbstractMixin, RefineMixin, ConditionMix
     """
 
     def __init__(self,
-                 memory: DocumentArray = None,
-                 execute_with_context_chain: ExecuteWithContextChain = None,
-                 abstract_chain: AbstractChain = None,
-                 refine_chain: RefineChain = None,
-                 condition_chain: ConditionChain = None,
-                 select_chain: SelectChain = None,
-                 infer_chain: InferChain = None,
-                 summarize_chain: SummarizeChain = None,
-                 verbose=True,
-                 # TODO: model name can be specified per mixin
-                 **kwargs
-                 ):
+                 chatllm,
+                 embeddings_model,
+                 memory_name,
+                 persist_directory=None,
+                 verbose=True):
         super().__init__(**kwargs)
         # TODO: offer more docarray backends
-        self.memory = memory or DocumentArray()
-        self.embeddings_model = OpenAIEmbeddings()
-        self.openai = ChatOpenAI(**kwargs)
-        self.execute_with_context_chain = execute_with_context_chain or ExecuteWithContextChain(
-            llm=self.openai, verbose=verbose)
-        self.abstract_chain = abstract_chain or AbstractChain(
-            llm=self.openai, verbose=verbose)
-        self.refine_chain = refine_chain or RefineChain(
-            llm=self.openai, verbose=verbose)
-        self.condition_chain = condition_chain or ConditionChain(
-            llm=self.openai, verbose=verbose)
-        self.select_chain = select_chain or SelectChain(llm=self.openai, verbose=verbose)
-        self.infer_chain = infer_chain or InferChain(llm=self.openai, verbose=verbose)
-        self.summarize_chain = summarize_chain or SummarizeChain(llm=self.openai, verbose=verbose)  # Add this line
+        self.openai = chatllm
+        self.embeddings_model = embeddings_model
+        self.memory = Chroma(embedding_function=self.embeddings_model,
+                             collection_name=memory_name,
+                             persist_directory=persist_directory) 
+        self.execute_with_context_chain = ExecuteWithContextChain(llm=self.openai, verbose=verbose)
+        self.abstract_chain = AbstractChain(llm=self.openai, verbose=verbose)
+        self.refine_chain = RefineChain(llm=self.openai, verbose=verbose)
+        self.condition_chain = ConditionChain(llm=self.openai, verbose=verbose)
+        self.select_chain = SelectChain(llm=self.openai, verbose=verbose)
+        self.infer_chain = InferChain(llm=self.openai, verbose=verbose)
+        self.summarize_chain = SummarizeChain(llm=self.openai, verbose=verbose)  # Add this line
         self.mem_cnt = 0
 
 
-    def generate(
-            self, prompts: List[List[str]], stop: Optional[List[str]] = None, remember: Union[int, List[str]] = 0
-    ) -> LLMResult:
+    def generate(self,
+                 prompts: List[List[str]],
+                 stop: Optional[List[str]] = None,
+                 remember: Union[int, List[str]] = 0) -> LLMResult:
         # only works for single prompt
         if len(prompts) > 1:
             raise Exception('only works for a single prompt')
         prompt = prompts[0][0]
         if isinstance(remember, int) and remember > 0:
             remembered_elements = self.remember(prompt, limit=5)
-            result = self.execute_with_context_chain.predict(prompt=prompt, context='\n'.join(remembered_elements) if remembered_elements else 'Nothing')
+            result = self.execute_with_context_chain.predict(prompt=prompt,
+                                                             context='\n'.join(remembered_elements)
+                                                             if remembered_elements else 'Nothing')
         elif isinstance(remember, list):
-            result = self.execute_with_context_chain.predict(prompt=prompt, context='\n'.join(remember))
+            result = self.execute_with_context_chain.predict(prompt=prompt,
+                                                             context='\n'.join(remember))
         else:
-            result = self.execute_with_context_chain.predict(prompt=prompt, context='Nothing')
+            result = self.execute_with_context_chain.predict(prompt=prompt,
+                                                             context='Nothing')
 
         return LLMResult(generations=[[Generation(text=result)]])
 
-    def predict(
-            self, prompt: str, stop: Optional[List[str]] = None, remember: Union[int, List[str]] = 0
-    ) -> str:
+    def predict(self,
+                prompt: str,
+                stop: Optional[List[str]] = None,
+                remember: Union[int, List[str]] = 0) -> str:
         return self.generate([[prompt]], remember=remember).generations[0][0].text
 
 
